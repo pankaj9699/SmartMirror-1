@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Author(s): Kyle Kirby
-Date edited: 12/18/2016
+Date edited: 2/1/2016
 
 UIC Veterans in Engineering present... Smart Mirror
 

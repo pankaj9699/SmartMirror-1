@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="24b0ac2c-8ce0-4d17-bae2-615570f29c7f" name="Default" comment="" />
+    <list default="true" id="24b0ac2c-8ce0-4d17-bae2-615570f29c7f" name="Default" comment="">
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/smartMirror.py" afterPath="$PROJECT_DIR$/smartMirror.py" />
+    </list>
     <ignored path="smartMirror.iws" />
     <ignored path=".idea/workspace.xml" />
     <ignored path=".idea/dataSources.local.xml" />
@@ -27,10 +29,10 @@
       <file leaf-file-name="smartMirror.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/smartMirror.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="200">
-              <caret line="370" column="18" lean-forward="true" selection-start-line="370" selection-start-column="18" selection-end-line="370" selection-end-column="18" />
+            <state relative-caret-position="375">
+              <caret line="16" column="36" lean-forward="false" selection-start-line="16" selection-start-column="36" selection-end-line="16" selection-end-column="36" />
               <folding>
-                <element signature="e#566#587#0" expanded="true" />
+                <element signature="e#564#585#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -426,7 +428,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -436,7 +438,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -446,7 +448,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -456,7 +458,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -466,7 +468,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -476,7 +478,7 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="false" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
@@ -492,10 +494,10 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/smartMirror.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="200">
-          <caret line="370" column="18" lean-forward="true" selection-start-line="370" selection-start-column="18" selection-end-line="370" selection-end-column="18" />
+        <state relative-caret-position="375">
+          <caret line="16" column="36" lean-forward="false" selection-start-line="16" selection-start-column="36" selection-end-line="16" selection-end-column="36" />
           <folding>
-            <element signature="e#566#587#0" expanded="true" />
+            <element signature="e#564#585#0" expanded="true" />
           </folding>
         </state>
       </provider>
