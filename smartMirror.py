@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Author(s): Kyle Kirby
-Date edited: 2/1/2016
+Date edited: 2/25/2016
 
 UIC Veterans in Engineering present... Smart Mirror
 
 This python script is meant to be outputted to a monitor placed behind a 2 way mirror. It can be interacted with
-if combined with a digitizer. In order to pull current weather and calendar information, an internet connection is
+if combined with a touch screen monitor. In order to pull current weather and calendar information, an internet connection is
 required.
 
 
@@ -99,7 +99,6 @@ def image_from_site(url):
     raw_data = u.read()
     u.close()
     return Image.open(BytesIO(raw_data))
-
 
 class Clock(object):
     year, month, day, hours, minutes, seconds = update_time()
@@ -248,22 +247,40 @@ class Calendar(object):
         frame_index = 0
         self.monthFrame = [Frame(self.calendarFrame, bg='black')]
         self.month_calendar = []
-
+        self.calendar_labels = []
         for i in range(0, CALENDAR_ROWS * 7):
             self.month_calendar.append(Label(self.monthFrame[frame_index], text=str(i + 1), padx=padx, pady=pady,
                                              relief=RIDGE, height=height, width=width, bg='black', fg='white', bd=1,
                                              font=font, wraplength=50, anchor=N))
+            self.calendar_labels.append(self.month_calendar[i])
             self.month_calendar[i].pack(side=LEFT)
-            self.month_calendar[i].bind('<ButtonRelease-1>', self.show_day)
-            # self.month_calendar[i].bind('<Double-ButtonRelease-1>', self.switch_view)
+            self.month_calendar[i].bind('<ButtonPress-1>', self.calendar_swipe)
+            self.month_calendar[i].bind('<ButtonRelease-1>', self.calendar_swipe)
             if i == 6 or i == 13 or i == 20 or i == 27 or i == 34:  # if we have reached the end of a week, increment frame_index and add another row (another week) to monthFrame
                 frame_index += 1
                 self.monthFrame.append(Frame(self.calendarFrame, bg='black'))
-        self.calendar_day = Label(self.calendarFrame, text=" ", padx=padx, pady=pady,
-                                  relief=RIDGE, height=height, width=width, bg='black', fg='white', bd=1, font=font)
+        # calendar_day_frame is the frame which contains the data for the individual day when you click on a day ,
+        # day_weekday is the label on top that shows the day of the week
+        # calendar_day_labels will have labels appended to it for the date and each event
+        self.calendar_day_frame = Frame(self.calendarFrame, bg='black')
+        self.day_weekday = Label(self.calendar_day_frame, text=" ", padx=padx, pady=10,
+                                 relief=RIDGE, width=7, bg='black', fg='white', bd=1, font=("Roboto",12))
+        self.day_weekday.bind('<ButtonPress-1>', self.swipe_day)
+        self.day_weekday.bind('<ButtonRelease-1>', self.swipe_day)
+        self.calendar_day_labels = []
+        self.day_weekday.pack(anchor=N, fill=X)
         self.is_showing_month = False
-        self.show_week()  # by default the monthly calendar is shown
+        self.is_showing_day = False
+        # init swipe variables
+        self.trackingSwipe = False
+        self.x1 = 0
+        self.y1 = 0
+        self.y1 = 0
+        self.y2 = 0
+        # -------------------
+
         self.update_calendar_periodic()  # updates calendar every ~24 hours
+        self.show_week()  # by default the monthly calendar is shown
         # ===================================================== End Calendar Frame =================================================
 
     def update_calendar(self):
@@ -289,21 +306,36 @@ class Calendar(object):
                 timeMin=str(self.calendarYear) + "-" + str(self.calendarMonth) + "-" + "01" + now[10:], maxResults=31,
                 singleEvents=True, orderBy='startTime').execute()
             events = eventsResult.get('items', [])
-
+            # update calendar with events from google calendar api
             for event in events:
                 start = event['start'].get('dateTime', event['start'].get('date'))
                 if int(start[5:7]) == self.calendarMonth:
                     event_day = int(start[8:10])
                     event_time = start[11:16]
+
+                    hour = int(start[11:13])
+                    if hour > 12:
+                        hour -= 12
+                        event_time = str(hour) + start[13:16]
+                        event_time += " pm"
+                    elif hour == 12:
+                        event_time += " pm"
+                    elif hour < 10:
+                        event_time = start[12:16] + " am"
+                    else:
+                        event_time += " am"
+                    current_text = self.month_calendar[event_day + self.month_start_weekday - 1].cget("text")
                     self.month_calendar[event_day + self.month_start_weekday - 1].config(
-                        text=str(event_day) + "\n" + event['summary'] + " @ " + event_time)
+                        text=current_text + "\n" + event_time + ": " + event['summary'])
 
         except:
             print(
                 Clock.year + Clock.month + Clock.day + " at " + Clock.hours + ":" + Clock.minutes + " could not gather calendar data.")
 
     def find_month_start_weekday(self):
+
         month_start_weekday = date(self.calendarYear, self.calendarMonth, 1).weekday() + 1
+
         if month_start_weekday == 7:  # if starting weekday is sunday, make index = 0
             month_start_weekday = 0
         return month_start_weekday
@@ -334,76 +366,214 @@ class Calendar(object):
         self.root.after(86400000, self.update_calendar_periodic)
 
     def next_month(self):
+        temp_month = self.calendarMonth
+        temp_year = self.calendarYear
         self.calendarMonth += 1
         if self.calendarMonth > 12:
             self.calendarMonth = 1
             self.calendarYear += 1
-        self.calendarDay = 1
+        if self.is_showing_day:
+            if self.calendarDay > monthrange(temp_year, temp_month)[1]:
+                self.calendarDay -= 7
+            self.calendarDay += 7 - monthrange(temp_year, temp_month)[1]
+        else:
+            self.calendarDay = 1
         self.update_month_label()
         self.update_calendar()
 
     def previous_month(self):
+
         self.calendarMonth -= 1
         if self.calendarMonth < 1:
             self.calendarMonth = 12
             self.calendarYear -= 1
-        self.calendarDay = monthrange(self.calendarYear, self.calendarMonth)[1]
+        if self.is_showing_day:
+            if self.calendarDay < 1:
+                self.calendarDay += 7
+            self.calendarDay += monthrange(self.calendarYear, self.calendarMonth)[1] - 7
+        else:
+            self.calendarDay = monthrange(self.calendarYear, self.calendarMonth)[1]
+
         self.update_month_label()
         self.update_calendar()
 
     def next_week(self):
         self.current_week_index += 1
+        self.calendarDay += 7
         if self.current_week_index > self.month_end_week_index:
             self.next_month()
             self.current_week_index = 0
-        self.show_week()
+        if not self.is_showing_day:
+            self.show_week()
+        else:
+            self.current_week_index = self.find_week_index(self.calendarDay, self.month_start_weekday)
 
     def previous_week(self):
         self.current_week_index -= 1
-        if self.current_week_index < 0:
+        self.calendarDay -= 7
+        if self.current_week_index < 0 or self.calendarDay < 1:
             self.previous_month()
             self.current_week_index = self.month_end_week_index
-        self.show_week()
-
-    def show_day(self, event):
-        day_text = event.widget.cget("text")
-        if day_text == " ":
-            return
-        if self.is_showing_month:
-            # unpack month frames
-            self.weekdaysFrame.pack_forget()
-            self.calendarMonthButtonsFrame.pack_forget()
-            for i in range(0, CALENDAR_ROWS):
-                self.monthFrame[i].pack_forget()
-            self.is_showing_month = False
-            self.calendar_day.bind('<ButtonRelease-1>', self.show_month)
-        else:
-            self.weekdaysFrame.pack_forget()
-            self.calendarWeekButtonsFrame.pack_forget()
-            self.monthFrame[self.current_week_index].pack_forget()
-            self.calendar_day.bind('<ButtonRelease-1>', self.show_week)
-        self.calendar_day.config(text=day_text)
-        self.calendar_day.pack(anchor=N, fill=BOTH)
-
-    def switch_view(self, event):
-        if self.is_showing_month:
+        if not self.is_showing_day:
             self.show_week()
         else:
-            self.show_month()
+            self.current_week_index = self.find_week_index(self.calendarDay, self.month_start_weekday)
+
+    def next_year(self):
+        self.calendarYear += 1
+        self.calendarDay = monthrange(self.calendarYear, self.calendarMonth)[1]
+        self.update_month_label()
+        self.update_calendar()
+
+    def previous_year(self):
+        self.calendarYear -= 1
+        self.calendarDay = monthrange(self.calendarYear, self.calendarMonth)[1]
+        self.update_month_label()
+        self.update_calendar()
+
+    def next_day(self):
+        self.calendarDay += 1
+        if self.calendarDay > monthrange(self.calendarYear, self.calendarMonth)[1]: # second element of monthrange() tuple is the number of days in the month
+            self.calendarDay -= 1
+            self.next_month()  # if we went past the last day of the month, go to first day of next month
+            self.show_day(Event, self.calendar_labels[self.month_start_weekday])
+        else:
+            self.show_day(Event, self.calendar_labels[self.calendarDay+self.month_start_weekday-1])
+
+    def previous_day(self):
+        self.calendarDay -= 1
+        if self.calendarDay < 1:
+            self.calendarDay += 1
+            self.previous_month()  # if we went past the first day of the month, go to last day of previous month
+            self.calendarDay = self.month_start_weekday+monthrange(self.calendarYear, self.calendarMonth)[1]
+            self.show_day(Event, self.calendar_labels[self.month_start_weekday+monthrange(self.calendarYear, self.calendarMonth)[1]])
+        else:
+            self.show_day(Event, self.calendar_labels[self.calendarDay + self.month_start_weekday - 1])
+
+    def swipe_day(self, event):
+        MIN_SWIPE_DISTANCE = 30
+        if int(event.type) == 4 and self.trackingSwipe is False:  # if event is button (button press)
+            self.x1 = event.x_root
+            self.y1 = event.y_root
+            self.trackingSwipe = True
+        elif int(event.type) == 5 and self.trackingSwipe is True:  # if event is buttonRelease
+            self.x2 = event.x_root
+            self.y2 = event.y_root
+            self.trackingSwipe = False
+            if self.x2 > self.x1 + MIN_SWIPE_DISTANCE:  # swipe right
+                self.previous_day()
+                # previous day
+            elif self.x2 < self.x1 - MIN_SWIPE_DISTANCE:  # swipe left
+                self.next_day()
+                # next day
+            elif self.y2 > self.y1 + MIN_SWIPE_DISTANCE:  # swipe down
+                self.previous_week()
+                self.show_day(Event, self.calendar_labels[self.calendarDay + self.month_start_weekday - 1])
+                # previous week
+            elif self.y2 < self.y1 - MIN_SWIPE_DISTANCE:  # swipe up
+                self.next_week()
+                self.show_day(Event, self.calendar_labels[self.calendarDay + self.month_start_weekday - 1])
+                # next week
+            else:  # the user did not swipe a large enough distance for it to be a valid swipe
+                if self.is_showing_month:
+                    self.show_month()
+                else:
+                    self.show_week()
+
+    def show_day(self, event=Event, day_widget=Label):
+        if self.is_showing_day:
+            day_text = day_widget.cget("text")
+        else:
+            day_text = event.widget.cget("text")
+        if day_text == " ":  # base case where calendar day clicked has no contents
+            return
+        self.is_showing_day = True
+        self.weekdaysFrame.pack_forget()
+        self.calendarMonthButtonsFrame.pack_forget()
+        self.calendarWeekButtonsFrame.pack_forget()
+        for i in range(0, CALENDAR_ROWS):
+            self.monthFrame[i].pack_forget()
+        lines = day_text.split("\n")
+        for i in range(0, len(self.calendar_day_labels)):
+            self.calendar_day_labels[0].pack_forget()
+            del self.calendar_day_labels[0]
+        self.calendarDay = int(lines[0])  # set calendarDay = the day selected
+        i = 0
+        bg_colors = ('#292929', 'black')
+        for index in range(1, len(lines)):
+            time_index = lines[index].find("m")  # finds index of first m, which would be the m in am or pm
+            time_text = lines[index][0:time_index+1]  # would look like "8:00 am"
+            event_text = lines[index][time_index+3:49]  # the rest of the text is the event
+
+            # add new frame for event
+            self.calendar_day_labels.append(Frame(self.calendar_day_frame, bg='black'))
+            self.calendar_day_labels[i].pack(anchor=N, fill=X)
+            i+=1
+            # add event time to event frame
+            self.calendar_day_labels.append(Label(self.calendar_day_labels[i-1], text=time_text, padx=2, pady=5, anchor=W,
+                                                  relief=RIDGE, height=2, width=8, bg=bg_colors[(index+1)%2], fg='white', bd=1,
+                                                  font=('Roboto', 14)))
+            self.calendar_day_labels[i].pack(anchor=N, fill=X, side=LEFT)
+            self.calendar_day_labels[i].bind('<ButtonPress-1>', self.swipe_day)
+            self.calendar_day_labels[i].bind('<ButtonRelease-1>', self.swipe_day)
+            i+=1
+            # add event description to event frame
+            self.calendar_day_labels.append(Label(self.calendar_day_labels[i-2], text=event_text, padx=2, pady=5, anchor=E,
+                                                  relief=RIDGE, height=2, width=20, bg=bg_colors[(index+1)%2], fg='white', bd=1,
+                                                  font=('Roboto', 14), wraplength=210))
+            self.calendar_day_labels[i].pack(anchor=N, fill=X, side=RIGHT)
+            self.calendar_day_labels[i].bind('<ButtonPress-1>', self.swipe_day)
+            self.calendar_day_labels[i].bind('<ButtonRelease-1>', self.swipe_day)
+            i+=1
+
+        self.day_weekday.config(text=WEEKDAYS[date(self.calendarYear, self.calendarMonth, self.calendarDay).weekday()]+
+                                ", "+MONTHS[self.calendarMonth-1]+" "+str(self.calendarDay)+", "+str(self.calendarYear))
+
+        self.calendar_day_frame.pack(anchor=N, fill=BOTH)
+
+    def calendar_swipe(self, event):  # check if user swiped, take action accordingly
+        MIN_SWIPE_DISTANCE = 50
+        if int(event.type) == 4 and self.trackingSwipe is False:  # if event is button (button press)
+            self.x1 = event.x_root
+            self.y1 = event.y_root
+            self.trackingSwipe = True
+        elif int(event.type) == 5 and self.trackingSwipe is True:  # if event is buttonRelease
+            self.x2 = event.x_root
+            self.y2 = event.y_root
+            self.trackingSwipe = False
+            if self.x2 > self.x1+MIN_SWIPE_DISTANCE:  # swipe right
+
+                if self.is_showing_month:
+                    self.previous_month()
+                else:
+                    self.previous_week()
+            elif self.x2 < self.x1-MIN_SWIPE_DISTANCE:  # swipe left
+                if self.is_showing_month:
+                    self.next_month()
+                else:
+                    self.next_week()
+            elif self.y2 > self.y1+MIN_SWIPE_DISTANCE:  # swipe down
+                self.next_year()
+            elif self.y2 < self.y1-MIN_SWIPE_DISTANCE:  # swipe up
+                self.previous_year()
+            else:  # the user did not swipe a large enough distance for it to be a valid swipe
+                self.show_day(event)
 
     def show_month(self, event=Event):
-        self.calendar_day.pack_forget()
+        self.calendar_day_frame.pack_forget()
         self.weekdaysFrame.pack_forget()
         self.calendarWeekButtonsFrame.pack_forget()
         self.calendarMonthButtonsFrame.pack(side=TOP, anchor=NW, fill=X)
         self.weekdaysFrame.pack(anchor=W, fill=BOTH)
-        self.monthFrame[self.current_week_index].pack_forget()
+        for i in range(0, CALENDAR_ROWS):
+            self.monthFrame[i].pack_forget()
         for i in range(0, CALENDAR_ROWS):
             self.monthFrame[i].pack(anchor=W, fill=BOTH)
         self.is_showing_month = True
+        self.is_showing_day = False
 
     def show_week(self, event=Event):
-        self.calendar_day.pack_forget()
+        self.calendar_day_frame.pack_forget()
         self.weekdaysFrame.pack_forget()
         self.calendarMonthButtonsFrame.pack_forget()
         self.calendarWeekButtonsFrame.pack(side=TOP, anchor=NW, fill=X)
@@ -412,6 +582,7 @@ class Calendar(object):
             self.monthFrame[i].pack_forget()
         self.monthFrame[self.current_week_index].pack(anchor=W, fill=BOTH)
         self.is_showing_month = False
+        self.is_showing_day = False
 
 
 class App:
